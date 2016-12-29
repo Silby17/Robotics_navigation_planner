@@ -4,9 +4,6 @@
 *	NavigatorBot.cpp
 */
 #include "Navigator.h"
-#include <stdlib.h>
-#include <fstream>
-#include <nav_msgs/GetMap.h>
 
 NavigatorPath::NavigatorPath() {
 
@@ -39,6 +36,11 @@ NavigatorPath::NavigatorPath() {
 
 }*/
 
+/*******************************************************
+ * This Function will request the map
+ * @param nh - node handler
+ * @return - bool if successful or not
+ *******************************************************/
 bool NavigatorPath::requestMap(ros::NodeHandle &nh) {
 	nav_msgs::GetMap::Request req;
 	nav_msgs::GetMapResponse res;
@@ -59,24 +61,46 @@ bool NavigatorPath::requestMap(ros::NodeHandle &nh) {
 	}
 }
 
+
 void NavigatorPath::readMap(const nav_msgs::OccupancyGrid& map) {
-	ROS_INFO("Received a %d X %d map @ %.3f m/px\n", map.info.width, map.info.height, map.info.resolution);
+	ROS_INFO("Received a %d X %d map @ %.3f m/px\n",
+             map.info.width, map.info.height, map.info.resolution);
 
 	rows = map.info.height;
 	cols = map.info.width;
 	mapResolution = map.info.resolution;
-	int currCell = 0;
 
 	// Dynamically resize the grid
 	grid.resize(rows);
 	for (int i = 0; i < rows; i++) {
 		grid[i].resize(cols);
 	}
-
+    int currCell = 0;
 	for (int i = 0; i < rows; i++) {
 		for (int j = 0; j < cols; j++) {
-            grid[i][j] = map.data[currCell] != 0; // occupied (100) or unknown cell (-1)
-			currCell++;
+            if(map.data[currCell] == 0){
+                grid[i][j] = false;
+            }
+            else{
+                grid[i][j] = true;
+            }
+            currCell++;
 		}
 	}
+}
+
+/*******************************************************
+ * This Function will print the grid to a text file
+ ******************************************************/
+void NavigatorPath::printGridToFile() {
+    ofstream gridFile;
+    gridFile.open("/home/viki/my_grid.txt");
+    for (int i =0; i < rows; i++) {
+        for (int j = 0; j < cols; j++) {
+            gridFile << (grid[i][j] ? 1 : 0);
+        }
+        gridFile << endl;
+    }
+    gridFile.close();
+    ROS_INFO("----------CLOSING FILE---------\n");
 }
