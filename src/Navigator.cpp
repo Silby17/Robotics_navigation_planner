@@ -5,36 +5,9 @@
 */
 #include "Navigator.h"
 
-NavigatorPath::NavigatorPath() {
+/**Constructor**/
+NavigatorPath::NavigatorPath() {}
 
-}
-
-/*int main(int argc, char **argv){
-	double robot_size;
-
-	std::vector<Location> starting_location;;
-	ros::init(argc, argv, "navigation_planner");
-
-
-	ros::NodeHandle nh;
-
-	NavigatorPath navigatorPath;
-
-
-	std::vector<double> location_start, locations_goal_location;
-	string starting;
-	nh.getParam("starting_location", starting);
-
-	nh.getParam("starting_location", location_start);
-	nh.getParam("goal_location", locations_goal_location);
-	nh.getParam("robot_size", robot_size);
-	
-	//double start_x = atof(starting.at(0));
-	//double start_y = atof(starting.at(2));
-
-	//starting_location.push_back(Location(start_x, start_y));
-
-}*/
 
 /*******************************************************
  * This Function will request the map
