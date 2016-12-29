@@ -102,5 +102,5 @@ void NavigatorPath::printGridToFile() {
         gridFile << endl;
     }
     gridFile.close();
-    ROS_INFO("----------CLOSING FILE---------\n");
+    ROS_INFO("----------Done creating grid file---------\n");
 }
