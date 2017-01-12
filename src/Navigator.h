@@ -26,16 +26,25 @@ public:
 	NavigatorPath();
     bool requestMap(ros:: NodeHandle &nh);
     void readMap(const nav_msgs::OccupancyGrid& map);
+    void inflateObstacles();
     void printGridToFile();
+    void printNewGrid();
+    void printInflatedGridToFile();
+    void createTempIntGrid();
+    void setPixelSize(double robot, double res);
 	Location starting_location;
 	Location goal_location;
 
 private:
 	double mapResolution;
 	double robot_size;
-	int rows;
+	double pixels_size;
+    int perimeter;
+    int rows;
 	int cols;
-	vector<vector<bool>> grid;
+	vector<vector<bool> > grid;
+	vector<vector<bool> > new_grid;
+	vector<vector<int> > int_grid;
 };
 
 
