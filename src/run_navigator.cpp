@@ -27,9 +27,7 @@ Location parseVector(string str){
     Location t_location;
     t_location.first = t_vector.at(0);
     t_location.second = t_vector.at(1);
-
     return t_location;
-
 };
 
 /**Main Function**/
@@ -37,6 +35,8 @@ Location parseVector(string str){
      //Deceleration of variables
      string tempStart;
      string tempGoal;
+    double robot_size;
+    double resolution;
 
     // Initiate new ROS node named "wander_bot"
      ros::init(argc, argv, "navigation_planner");
@@ -46,20 +46,30 @@ Location parseVector(string str){
      ros::NodeHandle nh;
 
 
-     //Gets Parameters from the launch file
-     nh.getParam("starting_location", tempStart);
-     nh.getParam("goal_location", tempGoal);
+    //Gets Parameters from the launch file
+    nh.getParam("starting_location", tempStart);
+    nh.getParam("goal_location", tempGoal);
+    nh.getParam("robot_size", robot_size);
+    nh.getParam("map_resolution", resolution);
+
+    //Sets the size of the Pixels
+    navigatorPath.setPixelSize(robot_size, resolution);
 
      //Converts the start and goal locations into locations
      navigatorPath.starting_location = parseVector(tempStart);
      navigatorPath.goal_location = parseVector(tempGoal);
 
-
      if(!navigatorPath.requestMap(nh)){
          exit(-1);
      }
+    navigatorPath.createTempIntGrid();
 
-     navigatorPath.printGridToFile();
+    navigatorPath.printGridToFile();
+
+    navigatorPath.inflateObstacles();
+    navigatorPath.printInflatedGridToFile();
+
+    //navigatorPath.printNewGrid();
 
     return 0;
 }
