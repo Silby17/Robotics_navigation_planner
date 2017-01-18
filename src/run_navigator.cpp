@@ -62,14 +62,14 @@ Location parseVector(string str){
      if(!navigatorPath.requestMap(nh)){
          exit(-1);
      }
+
+    //Creates A temp grid that's obstacles are surrounded by 2's
     navigatorPath.createTempIntGrid();
-
-    navigatorPath.printGridToFile();
-
+    //Inflates the obstacles in the map
     navigatorPath.inflateObstacles();
-    navigatorPath.printInflatedGridToFile();
 
-    //navigatorPath.printNewGrid();
+    //Reduces the matrix by the size of the robot
+    navigatorPath.createRobotSizeGrid();
 
     return 0;
 }
