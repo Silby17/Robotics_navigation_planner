@@ -21,17 +21,28 @@ using namespace std;
 //Define locations as x,y
 typedef pair<double, double> Location;
 
+struct Node {
+    int x, y;
+    struct Node *up;
+    struct Node *right;
+    struct Node *down;
+    struct Node *left;
+};
+
 class NavigatorPath{
 public:
 	NavigatorPath();
     bool requestMap(ros:: NodeHandle &nh);
     void readMap(const nav_msgs::OccupancyGrid& map);
+    void PrintIntegerVector(vector<vector<int> > vector, int r, int c, string path);
     void inflateObstacles();
-    void printGridToFile();
-    void printNewGrid();
-    void printInflatedGridToFile();
     void createTempIntGrid();
     void setPixelSize(double robot, double res);
+    void createRobotSizeGrid();
+    void SetNewGridSize(int rows, int cols);
+    double idiv_ceil(double numerator, double denominator);
+    void printSumSimple(int k_rows, int k_cols);
+    bool CheckSubMatrix(int x_start, int y_start, int x_end, int y_end);
 	Location starting_location;
 	Location goal_location;
 
@@ -39,13 +50,14 @@ private:
 	double mapResolution;
 	double robot_size;
 	double pixels_size;
+	double size_map_units;
     int perimeter;
     int rows;
 	int cols;
-	vector<vector<bool> > grid;
-	vector<vector<bool> > new_grid;
+    int n_rows;
+    int n_cols;
+	vector<vector<int> > grid;
 	vector<vector<int> > int_grid;
+    vector<vector<int> > robot_size_grid;
 };
-
-
 #endif
