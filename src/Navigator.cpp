@@ -42,7 +42,9 @@ bool NavigatorPath::requestMap(ros::NodeHandle &nh) {
  * @param res - resolution
  *****************************************************************************/
 void NavigatorPath::setPixelSize(double robot, double res) {
-    double size_map_units = (robot/res);
+    size_map_units = (robot/res);
+    ROS_INFO("The Size of the robot in map units is: %.2f", size_map_units);
+
     //The robot size in pixels in map units dived by 2
     pixels_size = size_map_units / 2;
     //Rounds down and converts to integer
@@ -57,7 +59,7 @@ void NavigatorPath::setPixelSize(double robot, double res) {
  ****************************************************************************/
 void NavigatorPath::readMap(const nav_msgs::OccupancyGrid& map) {
 	ROS_INFO("Received a %d X %d map @ %.3f m/px\n",
-             map.info.width, map.info.height, map.info.resolution);
+             map.info.height, map.info.width, map.info.resolution);
 
     //Define Rows, Cols and resolution
 	rows = map.info.height;
@@ -75,16 +77,20 @@ void NavigatorPath::readMap(const nav_msgs::OccupancyGrid& map) {
 	for (int i = 0; i < rows; i++) {
 		for (int j = 0; j < cols; j++) {
             if(map.data[currCell] == 0){
-                grid[i][j] = false;
+                grid[i][j] = 0;
                 int_grid[i][j] = 0;
             }
             else{
-                grid[i][j] = true;
+                grid[i][j] = 1;
                 int_grid[i][j] = 1;
             }
             currCell++;
 		}
 	}
+    int_grid[115][97] = 7;
+
+
+    PrintIntegerVector(grid, rows, cols, "original_grid.txt");
 }
 
 /******************************************************************************
@@ -109,6 +115,8 @@ void NavigatorPath::createTempIntGrid() {
             }
         }
     }
+
+    PrintIntegerVector(int_grid, rows, cols, "temp_int_grid.txt");
 }
 
 
@@ -178,46 +186,114 @@ void NavigatorPath::inflateObstacles() {
             if(int_grid[i][j] == 2){int_grid[i][j] = 1;}
         }
     }
+
+    PrintIntegerVector(int_grid, rows, cols, "inflated_grid.txt");
 }
 
 
-/*****************************************************************************
- * This Function will print the grid to a text file
- ****************************************************************************/
-void NavigatorPath::printGridToFile() {
-    ofstream gridFile;
-    gridFile.open("/home/viki/grids/original_grid.txt");
 
-    ofstream int_gridFile;
-    int_gridFile.open("/home/viki/grids/int_grid.txt");
+void NavigatorPath::createRobotSizeGrid() {
+    //Gets the size of the new reduced matrix
+    double new_rows = idiv_ceil((double)rows, size_map_units);
+    double new_cols = idiv_ceil((double)cols, size_map_units);
+    //Defines the size of the new grid
+    SetNewGridSize((int)new_rows, (int)new_cols);
 
-    for (int i =0; i < rows; i++) {
-        for (int j = 0; j < cols; j++) {
-            gridFile << (grid[i][j] ? 1 : 0);
-            int_gridFile << (grid[i][j] ? 1 : 0);
+
+    CreateReducedGrid((int)new_rows, (int)new_cols);
+}
+
+
+
+void NavigatorPath::CreateReducedGrid(int k_rows, int k_cols) {
+    ROS_INFO("Starting print sum simple function");
+    bool n_array[k_rows][k_cols];
+    int x = 0;
+    int y = 0;
+
+    for(int i = 0; i < k_rows; i++){
+        for(int j = 0; j < k_cols; j++){
+            //ROS_INFO("Local i = %d, Local j = %d", i, j);
+            n_array[i][j] = CheckSubMatrix(i * 7, (j *7) , ((i + 1)*7), ((j+1)*7));
         }
-        gridFile << endl;
-        int_gridFile << endl;
     }
-    gridFile.close();
-    int_gridFile.close();
-    ROS_INFO("----------Done writing the grid and integer grid to file ---------\n");
+
+    for(int i = 0; i < k_rows; i++){
+        for(int j =0; j < k_cols; j++){
+            robot_size_grid[i][j] = n_array[i][j];
+        }
+    }
+    PrintIntegerVector(robot_size_grid, n_rows, n_cols, "shrinked_grid.txt");
+
+/*
+    int ar[k_rows * k_cols];
+    for(int i = 0; i< k_rows; i++){
+        for(int j = 0; j < k_cols; j++){
+            ar[i * k_cols + j] = n_array[i][j];
+        }
+    }
+    cout << std::end(ar) - std::begin(ar);
+    ROS_INFO("Done converting into 1d array :");
+*/
+
 }
 
 
+bool NavigatorPath::CheckSubMatrix(int x_start, int y_start, int x_end, int y_end){
+    //Makes sure that the values are within the bounds of the matrix
+    if(x_end >= rows){ x_end = rows - 1;}
+    if(y_end >= cols){ y_end = cols - 1;}
+
+
+    for (int i = x_start; i < x_end; i++){
+        for(int j = y_start; j < y_end; j++){
+            if(int_grid[i][j] == 1){
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 /*****************************************************************************
- * This function will print the Inflated grid into a txt file
+ * Sets the size of the new Grid adjusted to the robot size
+ * @param rows - new row size
+ * @param cols - new cols size
  *****************************************************************************/
-void NavigatorPath::printInflatedGridToFile(){
-    ofstream new_gridFile;
-    new_gridFile.open("/home/viki/grids/inflated_grid.txt");
+void NavigatorPath::SetNewGridSize(int rows, int cols) {
+    n_rows = rows;
+    n_cols = cols;
 
-    for (int i =0; i < rows; i++) {
-        for (int j = 0; j < cols; j++) {
-            new_gridFile << (int_grid[i][j]);
-        }
-        new_gridFile << endl;
+    robot_size_grid.resize(n_rows);
+    for (int i = 0; i < n_cols; i++){
+        robot_size_grid[i].resize(n_cols);
     }
-    new_gridFile.close();
-    ROS_INFO("----------Done writing the inflated grid to file---------\n");
+    ROS_INFO("New Col size is: %d, new Rows size: %d", n_rows, n_cols);
+}
+
+
+double NavigatorPath::idiv_ceil(double numerator, double denominator){
+    double result = numerator / denominator;
+    //Adding 0.5 to the number as the compiler will always truncate
+    //This is done only when x > 0 and here we can assume this is true
+    result += 0.5;
+    return result;
+}
+
+
+
+void NavigatorPath::PrintIntegerVector(vector<vector<int> > vector, int r, int c, string path){
+    ofstream file;
+    string file_path = "/home/viki/grids/";
+    file_path += path;
+    file.open(file_path.c_str());
+
+    for(int i = 0; i < r; i++){
+        for(int j = 0; j < c; j++){
+            file << vector[i][j];
+        }
+        file << endl;
+    }
+    file.close();
+    ROS_INFO("----------------------Done writing: %s to file--------------=", path.c_str());
 }
