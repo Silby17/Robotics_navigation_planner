@@ -41,7 +41,7 @@ public:
     void createRobotSizeGrid();
     void SetNewGridSize(int rows, int cols);
     double idiv_ceil(double numerator, double denominator);
-    void printSumSimple(int k_rows, int k_cols);
+    void CreateReducedGrid(int k_rows, int k_cols);
     bool CheckSubMatrix(int x_start, int y_start, int x_end, int y_end);
 	Location starting_location;
 	Location goal_location;
