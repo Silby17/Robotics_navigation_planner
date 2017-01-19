@@ -59,5 +59,7 @@ private:
 	vector<vector<int> > grid;
 	vector<vector<int> > int_grid;
     vector<vector<int> > robot_size_grid;
+	vector<int> single_vector;
+
 };
 #endif
