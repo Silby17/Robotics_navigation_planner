@@ -225,17 +225,16 @@ void NavigatorPath::CreateReducedGrid(int k_rows, int k_cols) {
     }
     PrintIntegerVector(robot_size_grid, n_rows, n_cols, "shrinked_grid.txt");
 
-/*
-    int ar[k_rows * k_cols];
+    single_vector.resize(k_rows * k_cols);
+    int s = single_vector.size();
+    ROS_INFO("Vecotr sze is : = %d", s);
+    /*int ar[k_rows * k_cols];
     for(int i = 0; i< k_rows; i++){
         for(int j = 0; j < k_cols; j++){
-            ar[i * k_cols + j] = n_array[i][j];
+            int temp = n_array[i][j];
+            matrix[i * k_cols + j] = temp;
         }
-    }
-    cout << std::end(ar) - std::begin(ar);
-    ROS_INFO("Done converting into 1d array :");
-*/
-
+    }*/
 }
 
 
