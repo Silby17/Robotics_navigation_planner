@@ -19,7 +19,7 @@
 using namespace std;
 
 //Define locations as x,y
-typedef pair<double, double> Location;
+typedef pair<int, int> Location;
 
 struct Node {
     int x, y;

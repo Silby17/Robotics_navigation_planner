@@ -3,6 +3,7 @@ using namespace std;
 int GLOBAL_WIDTH;
 int GlOBAL_HEIGHT;
 vector<int> map_vector;
+vector<pair<int, int> > Location_vector;
 
 class AStarAlgorithm {
 public:
@@ -27,7 +28,12 @@ public:
 
     MapSearchNode mapSearchNode;
     void Run(vector<int> map_vec, int height, int width, AStarAlgorithm::MapSearchNode start, AStarAlgorithm::MapSearchNode Goal);
+    vector<pair<int, int> > GetLocation();
 };
+
+vector<pair<int, int> > AStarAlgorithm::GetLocation() {
+    return Location_vector;
+}
 
 int AStarAlgorithm::MapSearchNode::GetX() {
     return this->x;
@@ -62,6 +68,7 @@ bool AStarAlgorithm::MapSearchNode::IsSameState( MapSearchNode &rhs ) {
 void AStarAlgorithm::MapSearchNode::PrintNodeInfo() {
     char str[100];
     sprintf( str, "Node position : (%d,%d)\n", x,y );
+    Location_vector.push_back(make_pair(x, y));
     cout << str;
 }
 
@@ -127,6 +134,7 @@ void AStarAlgorithm::Run(vector<int> map_vec, int height, int width, AStarAlgori
     map_vector = map_vec;
     GLOBAL_WIDTH = width;
     GlOBAL_HEIGHT = height;
+
 
     cout << "Starting the RUN function  in MainClass.cpp\n\n";
     cout << "STL A* Search implementation\n(C)2001 Justin Heyes-Jones\n";

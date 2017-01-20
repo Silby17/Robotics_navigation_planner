@@ -18,7 +18,7 @@ catkin_package()
 include_directories(${catkin_INCLUDE_DIRS})
 
 ## Declare a cpp executable
-add_executable(navigation_planner src/NavigatorBot.cpp src/run_navigator.cpp)
+add_executable(navigation_planner src/Navigator.cpp src/run_navigator.cpp)
 
 ## Specify libraries to link a library or executable target against
 target_link_libraries(navigation_planner ${catkin_LIBRARIES})
