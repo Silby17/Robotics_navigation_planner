@@ -31,6 +31,25 @@ Location parseVector(string str){
     return t_location;
 };
 
+void WritePathToFile(vector<pair<int, int> > locations, string path) {
+    //Sets the path of the output file
+    string file_path = "/home/viki/grids/";
+    file_path += path;
+    ofstream file;
+    file.open(file_path.c_str());
+
+    typedef std::vector<std::pair<int, int> > vector_type;
+    for (vector_type::const_iterator pos = locations.begin();
+         pos != locations.end(); ++pos)
+    {
+        file << "(" << pos->first << "," << pos->second << ")" << endl;
+    }
+    file.close();
+
+    ROS_INFO("Writing to File completed");
+}
+
+
 /**Main Function**/
  int main(int argc, char **argv) {
      //Deceleration of variables
@@ -106,5 +125,11 @@ Location parseVector(string str){
 
     algo.Run(vec, 20, 20, startingNode, goalNode);
 
+    //Gets The navigation path from the ASTar Algorithm run
+    vector<pair<int, int> > path_cells = algo.GetLocation();
+    //Writes the locations into txt file
+    WritePathToFile(path_cells, "navigation_plan.txt");
+
     return 0;
 }
+
