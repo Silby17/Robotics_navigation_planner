@@ -29,6 +29,7 @@ bool NavigatorPath::requestMap(ros::NodeHandle &nh) {
 		return true;
 	}
 	else{
+
 		ROS_ERROR("Failed to call map service");
 		return false;
 	}
@@ -52,6 +53,13 @@ void NavigatorPath::setPixelSize(double robot, double res) {
     ROS_INFO("The perimeter size around each object will be: %d", perimeter);
 }
 
+Location NavigatorPath::CalculateRealPosition(double x, double y, double resolution) {
+    double r_x = x / resolution;
+    double r_y = y / resolution;
+    Location location = make_pair(r_x, r_y);
+    return location;
+}
+
 
 /****************************************************************************
  * This method will read the map from the occupancy grid
@@ -65,6 +73,12 @@ void NavigatorPath::readMap(const nav_msgs::OccupancyGrid& map) {
 	rows = map.info.height;
 	cols = map.info.width;
 	mapResolution = map.info.resolution;
+
+    //Calculates the center of the board
+    int r_start_x = (int)idiv_ceil((double)rows, (double)2);
+    int r_start_y = (int)idiv_ceil((double)cols, (double)2);
+    center_coordinated = make_pair(r_start_x, r_start_y);
+
 
 	// Dynamically resize the grid
 	grid.resize(rows);
@@ -87,9 +101,18 @@ void NavigatorPath::readMap(const nav_msgs::OccupancyGrid& map) {
             currCell++;
 		}
 	}
-    int_grid[115][97] = 7;
 
+    this->center_coordinated = make_pair(r_start_x, r_start_y);
+    this->int_grid[r_start_x][r_start_y] = 7;
 
+    //Calculate the Start and Goal Location in Original Grid
+    Location s = CalculateRealPosition(given_start.first, given_start.second, mapResolution);
+    Location end = CalculateRealPosition(given_goal.first, given_goal.second, mapResolution);
+    this->big_goal_location = make_pair((r_start_x + end.first), (r_start_y + end.second));
+    this->big_start_location = make_pair((r_start_x + s.first), (r_start_y + s.second));
+
+    ROS_INFO("Center of the grid is: (%d,%d)", r_start_x, r_start_y);
+    int_grid[big_goal_location.first][big_goal_location.second] = 4;
     PrintIntegerVector(grid, rows, cols, "original_grid.txt");
 }
 
@@ -115,7 +138,6 @@ void NavigatorPath::createTempIntGrid() {
             }
         }
     }
-
     PrintIntegerVector(int_grid, rows, cols, "temp_int_grid.txt");
 }
 
@@ -124,7 +146,7 @@ void NavigatorPath::createTempIntGrid() {
  * This function will inflate all obstacles according to the size of the robot
  *****************************************************************************/
 void NavigatorPath::inflateObstacles() {
-    ROS_INFO("----------Starting to inflate obstacles----------");
+    ROS_INFO("----------------------Starting to inflate obstacles----------------------");
     int size = perimeter;
     for(int i = 0; i < rows; i++){
         for(int j = 0; j < cols; j++){
@@ -186,59 +208,112 @@ void NavigatorPath::inflateObstacles() {
             if(int_grid[i][j] == 2){int_grid[i][j] = 1;}
         }
     }
-
     PrintIntegerVector(int_grid, rows, cols, "inflated_grid.txt");
 }
 
 
-
+/*****************************************************************************
+ * This function will create a new grid adjucted to the size of the robot
+ *****************************************************************************/
 void NavigatorPath::createRobotSizeGrid() {
     //Gets the size of the new reduced matrix
     double new_rows = idiv_ceil((double)rows, size_map_units);
     double new_cols = idiv_ceil((double)cols, size_map_units);
     //Defines the size of the new grid
     SetNewGridSize((int)new_rows, (int)new_cols);
-
-
     CreateReducedGrid((int)new_rows, (int)new_cols);
 }
 
 
-
+/*****************************************************************************
+ * This function will create a shrinked grid, shrinked to the calculated
+ * size.
+ * @param k_rows - the adjusted amount of rows
+ * @param k_cols - the adjusted amount of cols
+ *****************************************************************************/
 void NavigatorPath::CreateReducedGrid(int k_rows, int k_cols) {
-    ROS_INFO("Starting print sum simple function");
-    bool n_array[k_rows][k_cols];
-    int x = 0;
-    int y = 0;
-
     for(int i = 0; i < k_rows; i++){
         for(int j = 0; j < k_cols; j++){
-            //ROS_INFO("Local i = %d, Local j = %d", i, j);
-            n_array[i][j] = CheckSubMatrix(i * 7, (j *7) , ((i + 1)*7), ((j+1)*7));
-        }
-    }
-
-    for(int i = 0; i < k_rows; i++){
-        for(int j =0; j < k_cols; j++){
-            robot_size_grid[i][j] = n_array[i][j];
+            int result = CheckSubMatrix(i * 7, (j *7) , ((i + 1)*7), ((j+1)*7));
+            if(result == 1){
+                robot_size_grid[i][j] = 1;
+            }
+            else if(result == 7){
+                this->s_start_location = make_pair(i, j);
+                robot_size_grid[i][j] = 0;
+            }
+            else if(result == 4){
+                this->s_goal_location= make_pair(i, j);
+                robot_size_grid[i][j] = 0;
+            }
+            else if(result == 0){
+                robot_size_grid[i][j] = 0;
+            }
         }
     }
     PrintIntegerVector(robot_size_grid, n_rows, n_cols, "shrinked_grid.txt");
-
-    single_vector.resize(k_rows * k_cols);
-    int s = single_vector.size();
-    ROS_INFO("Vecotr sze is : = %d", s);
-    /*int ar[k_rows * k_cols];
-    for(int i = 0; i< k_rows; i++){
-        for(int j = 0; j < k_cols; j++){
-            int temp = n_array[i][j];
-            matrix[i * k_cols + j] = temp;
-        }
-    }*/
+    CreateAlgoGrid(robot_size_grid, k_rows, k_cols);
 }
 
 
-bool NavigatorPath::CheckSubMatrix(int x_start, int y_start, int x_end, int y_end){
+/******************************************************************************
+ * This function will create a grid for the running of the algorithm
+ * by replacing 1's with 9's and 0's with 1's
+ * @param grid - grid to be converted
+ * @param rows - size of rows
+ * @param cols - size of cols
+ *****************************************************************************/
+void NavigatorPath::CreateAlgoGrid(vector<vector<int> > grid, int rows, int cols) {
+    algo_grid.resize(rows);
+    for(int i = 0; i < rows; i++){
+        algo_grid[i].resize(cols);
+        for(int j = 0; j < cols; j++){
+            if(grid[i][j] == 1){
+                algo_grid[i][j] = 9;
+            }
+            else{
+                algo_grid[i][j] = grid[i][j];
+            }
+        }
+    }
+    for(int i = 0; i < rows; i++){
+        for(int j = 0; j < cols; j++) {
+            if(grid[i][j] == 0){
+                algo_grid[i][j] = 1;
+            }
+        }
+    }
+    //PrintIntegerVector(algo_grid, rows, cols, "done.txt");
+    CreateVectorForAlgorithm();
+}
+
+
+/******************************************************************************
+ * This Function will create a one dimensional vector for the running
+ * of the A* Algorithm
+ *****************************************************************************/
+void NavigatorPath::CreateVectorForAlgorithm(){
+    //Resize the single vector
+    this->one_dim_grid.resize(n_rows * n_cols);
+    for(int i = 0; i< n_rows; i++) {
+        for (int j = 0; j < n_cols; j++) {
+            int temp = algo_grid[i][j];
+            this->one_dim_grid[i * n_cols + j] = temp;
+        }
+    }
+}
+
+
+/*****************************************************************************
+ * This function will check the sub-matrix values of the original sized grid
+ * @param x_start - starting x coordinate
+ * @param y_start - starting y coordinate
+ * @param x_end - finishing x coordinate
+ * @param y_end - finishing y coordinate
+ * @return - the value of what was found in the sub-matrix defined
+ *****************************************************************************/
+int NavigatorPath::CheckSubMatrix(int x_start, int y_start, int x_end, int y_end){
+    int flag = 0;
     //Makes sure that the values are within the bounds of the matrix
     if(x_end >= rows){ x_end = rows - 1;}
     if(y_end >= cols){ y_end = cols - 1;}
@@ -247,12 +322,19 @@ bool NavigatorPath::CheckSubMatrix(int x_start, int y_start, int x_end, int y_en
     for (int i = x_start; i < x_end; i++){
         for(int j = y_start; j < y_end; j++){
             if(int_grid[i][j] == 1){
-                return true;
+                flag = 1;
+            }
+            if(int_grid[i][j] == 7){
+                flag = 7;
+            }
+            if(int_grid[i][j] == 4){
+                flag = 4;
             }
         }
     }
-    return false;
+    return flag;
 }
+
 
 /*****************************************************************************
  * Sets the size of the new Grid adjusted to the robot size
@@ -267,10 +349,16 @@ void NavigatorPath::SetNewGridSize(int rows, int cols) {
     for (int i = 0; i < n_cols; i++){
         robot_size_grid[i].resize(n_cols);
     }
-    ROS_INFO("New Col size is: %d, new Rows size: %d", n_rows, n_cols);
+    //ROS_INFO("New Col size is: %d, new Rows size: %d", n_rows, n_cols);
 }
 
 
+/*****************************************************************************
+ * This function will divide 2 double and return the ceiling value
+ * @param numerator - the numerator
+ * @param denominator - the denominator
+ * @return - the result
+ ****************************************************************************/
 double NavigatorPath::idiv_ceil(double numerator, double denominator){
     double result = numerator / denominator;
     //Adding 0.5 to the number as the compiler will always truncate
@@ -280,7 +368,13 @@ double NavigatorPath::idiv_ceil(double numerator, double denominator){
 }
 
 
-
+/***************************************************************************
+ * This function will output a given vector to file
+ * @param vector - to be outputted
+ * @param r - rows
+ * @param c - cols
+ * @param path - file name
+ ****************************************************************************/
 void NavigatorPath::PrintIntegerVector(vector<vector<int> > vector, int r, int c, string path){
     ofstream file;
     string file_path = "/home/viki/grids/";
@@ -294,5 +388,5 @@ void NavigatorPath::PrintIntegerVector(vector<vector<int> > vector, int r, int c
         file << endl;
     }
     file.close();
-    ROS_INFO("----------------------Done writing: %s to file--------------=", path.c_str());
+    ROS_INFO("----------------------Done writing: %s to file---------------", path.c_str());
 }
