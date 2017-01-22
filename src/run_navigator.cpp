@@ -25,12 +25,16 @@ Location parseVector(string str){
             ss.ignore();
         }
     }
-    Location t_location;
-    t_location.first = t_vector.at(0);
-    t_location.second = t_vector.at(1);
-    return t_location;
+    Location location = make_pair(t_vector.at(0), t_vector.at(1));
+    return location;
 };
 
+
+/***************************************************************************
+ * This Function will output the navigation path to a text file
+ * @param locations
+ * @param path
+ ***************************************************************************/
 void WritePathToFile(vector<pair<int, int> > locations, string path) {
     //Sets the path of the output file
     string file_path = "/home/viki/grids/";
@@ -45,26 +49,23 @@ void WritePathToFile(vector<pair<int, int> > locations, string path) {
         file << "(" << pos->first << "," << pos->second << ")" << endl;
     }
     file.close();
-
-    ROS_INFO("Writing to File completed");
+    ROS_INFO("----------------------Writing Navigation Path to file----------------------");
 }
 
 
 /**Main Function**/
  int main(int argc, char **argv) {
-     //Deceleration of variables
-     string tempStart;
-     string tempGoal;
+    //Deceleration of variables
+    string tempStart;
+    string tempGoal;
     double robot_size;
     double resolution;
-
     // Initiate new ROS node named "wander_bot"
-     ros::init(argc, argv, "navigation_planner");
+    ros::init(argc, argv, "navigation_planner");
 
     // Create new stopper object
-     NavigatorPath navigatorPath;
-     ros::NodeHandle nh;
-
+    NavigatorPath navigatorPath;
+    ros::NodeHandle nh;
 
     //Gets Parameters from the launch file
     nh.getParam("starting_location", tempStart);
@@ -75,14 +76,15 @@ void WritePathToFile(vector<pair<int, int> > locations, string path) {
     //Sets the size of the Pixels
     navigatorPath.setPixelSize(robot_size, resolution);
 
-     //Converts the start and goal locations into locations
-     navigatorPath.starting_location = parseVector(tempStart);
-     navigatorPath.goal_location = parseVector(tempGoal);
+    //Converts the start and goal locations into locations
+    navigatorPath.given_start = parseVector(tempStart);
+    navigatorPath.given_goal = parseVector(tempGoal);
 
-     if(!navigatorPath.requestMap(nh)){
-         exit(-1);
-     }
-
+    if(!navigatorPath.requestMap(nh)){
+        exit(-1);
+    }
+    //Calculates the center of the grid
+    //navigatorPath.center_coordinated = make_pair((navigatorPath.rows / 2), (navigatorPath.cols / 2));
     //Creates A temp grid that's obstacles are surrounded by 2's
     navigatorPath.createTempIntGrid();
     //Inflates the obstacles in the map
@@ -90,40 +92,23 @@ void WritePathToFile(vector<pair<int, int> > locations, string path) {
 
     //Reduces the matrix by the size of the robot
     navigatorPath.createRobotSizeGrid();
-    int arr[] = {
-            1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-            1,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,9,1,
-            1,9,9,1,1,9,9,9,1,9,1,9,1,9,1,9,9,9,1,1,
-            1,9,9,1,1,9,9,9,1,9,1,9,1,9,1,9,9,9,1,1,
-            1,9,1,1,1,1,9,9,1,9,1,9,1,1,1,1,9,9,1,1,
-            1,9,1,1,9,1,1,1,1,9,1,1,1,1,9,1,1,1,1,1,
-            1,9,9,9,9,1,1,1,1,1,1,9,9,9,9,1,1,1,1,1,
-            1,9,9,9,9,9,9,9,9,1,1,1,9,9,9,9,9,9,9,1,
-            1,9,1,1,1,1,1,1,1,1,1,9,1,1,1,1,1,1,1,1,
-            1,9,1,9,9,9,9,9,9,9,1,1,9,9,9,9,9,9,9,1,
-            1,9,1,1,1,1,9,1,1,9,1,1,1,1,1,1,1,1,1,1,
-            1,9,9,9,9,9,1,9,1,9,1,9,9,9,9,9,1,1,1,1,
-            1,9,1,9,1,9,9,9,1,9,1,9,1,9,1,9,9,9,1,1,
-            1,9,1,9,1,9,9,9,1,9,1,9,1,9,1,9,9,9,1,1,
-            1,9,1,1,1,1,9,9,1,9,1,9,1,1,1,1,9,9,1,1,
-            1,9,1,1,9,1,1,1,1,9,1,1,1,1,9,1,1,1,1,1,
-            1,9,9,9,9,1,1,1,1,1,1,9,9,9,9,1,1,1,1,1,
-            1,1,9,9,9,9,9,9,9,1,1,1,9,9,9,1,9,9,9,9,
-            1,9,1,1,1,1,1,1,1,1,1,9,1,1,1,1,1,1,1,1,
-            1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
-    };
 
-    vector<int> vec (arr, arr + sizeof(arr) / sizeof(arr[0]));
+    ROS_INFO("Starting Location: (%.0f,%.0f)", navigatorPath.s_start_location.first, navigatorPath.s_start_location.second);
+    ROS_INFO("Goal Location: (%.0f,%.0f)", navigatorPath.s_goal_location.first, navigatorPath.s_goal_location.second);
+
     AStarAlgorithm algo;
+    //Creates a node for the starting location
     AStarAlgorithm::MapSearchNode startingNode;
-    startingNode.x = 3;
-    startingNode.y = 7;
+    startingNode.x = navigatorPath.s_start_location.first;
+    startingNode.y = navigatorPath.s_start_location.second;
 
+    //Creates a node for the goal location
     AStarAlgorithm::MapSearchNode goalNode;
-    goalNode.x =17;
-    goalNode.y = 16;
+    goalNode.x =navigatorPath.s_goal_location.first;
+    goalNode.y = navigatorPath.s_goal_location.second;
 
-    algo.Run(vec, 20, 20, startingNode, goalNode);
+
+    algo.Run(navigatorPath.one_dim_grid, navigatorPath.rows, navigatorPath.cols, startingNode, goalNode);
 
     //Gets The navigation path from the ASTar Algorithm run
     vector<pair<int, int> > path_cells = algo.GetLocation();
