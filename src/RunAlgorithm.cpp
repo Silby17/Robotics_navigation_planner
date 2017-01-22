@@ -67,9 +67,9 @@ bool AStarAlgorithm::MapSearchNode::IsSameState( MapSearchNode &rhs ) {
 
 void AStarAlgorithm::MapSearchNode::PrintNodeInfo() {
     char str[100];
-    sprintf( str, "Node position : (%d,%d)\n", x,y );
+    //sprintf( str, "Node position : (%d,%d)\n", x,y );
     Location_vector.push_back(make_pair(x, y));
-    cout << str;
+    //cout << str;
 }
 
 // Here's the heuristic function that estimates the distance from a Node
@@ -135,8 +135,6 @@ void AStarAlgorithm::Run(vector<int> map_vec, int height, int width, AStarAlgori
     GLOBAL_WIDTH = width;
     GlOBAL_HEIGHT = height;
 
-
-    cout << "Starting the RUN function  in MainClass.cpp\n\n";
     cout << "STL A* Search implementation\n(C)2001 Justin Heyes-Jones\n";
     AStarSearch<AStarAlgorithm::MapSearchNode> astarsearch;
     unsigned int SearchCount = 0;
@@ -157,7 +155,7 @@ void AStarAlgorithm::Run(vector<int> map_vec, int height, int width, AStarAlgori
         while( SearchState == AStarSearch<AStarAlgorithm::MapSearchNode>::SEARCH_STATE_SEARCHING );
 
         if( SearchState == AStarSearch<AStarAlgorithm::MapSearchNode>::SEARCH_STATE_SUCCEEDED ) {
-            cout << "Search found goal state\n";
+            cout << "Search found goal state" << endl;
 
             AStarAlgorithm::MapSearchNode *node = astarsearch.GetSolutionStart();
             node->SetSizes(GlOBAL_HEIGHT, GLOBAL_WIDTH);
@@ -178,7 +176,7 @@ void AStarAlgorithm::Run(vector<int> map_vec, int height, int width, AStarAlgori
             astarsearch.FreeSolutionNodes();
         }
         else if( SearchState == AStarSearch<AStarAlgorithm::MapSearchNode>::SEARCH_STATE_FAILED ) {
-            cout << "Search terminated. Did not find goal state\n";
+            ROS_INFO("Search terminated. Did not find goal state");
         }
         // Display the number of loops the search went through
         cout << "SearchSteps : " << SearchSteps << "\n";
@@ -186,4 +184,3 @@ void AStarAlgorithm::Run(vector<int> map_vec, int height, int width, AStarAlgori
         astarsearch.EnsureMemoryFreed();
     }
 }
-
