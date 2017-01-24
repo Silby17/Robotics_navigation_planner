@@ -46,6 +46,7 @@ public:
     void CreateAlgoGrid(vector<vector<int> > grid, int rows, int cols);
     void CreateVectorForAlgorithm();
     pair<int, int> center_coordinated;
+    vector<pair<int, int> > path_coordinates;
     vector<int> one_dim_grid;
     int rows;
     int cols;
@@ -57,15 +58,16 @@ public:
     Location big_goal_location;
     Location s_start_location;
     Location s_goal_location;
+    double size_map_units;
+    int perimeter;
+    int n_rows;
+    int n_cols;
 
 private:
 	double mapResolution;
 	double robot_size;
 	double pixels_size;
-	double size_map_units;
-    int perimeter;
-    int n_rows;
-    int n_cols;
+
 	vector<vector<int> > grid;
 	vector<vector<int> > int_grid;
     vector<vector<int> > robot_size_grid;

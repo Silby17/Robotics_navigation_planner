@@ -53,6 +53,23 @@ void WritePathToFile(vector<pair<int, int> > locations, string path) {
 }
 
 
+
+vector<pair<int, int> > createPathCoordinates(vector<pair<int, int> > path_cells,
+                                              int size_map_units,
+                                              int k_row, int k_cols){
+    vector<pair<int, int> > real_path;
+    int size = path_cells.size();
+
+    typedef std::vector<std::pair<int, int> > vector_type;
+    for (vector_type::const_iterator pos = path_cells.begin();
+         pos != path_cells.end(); ++pos)
+    {
+        real_path.push_back(make_pair((pos->first - (k_row/2)), (pos->second - (k_cols/2))));
+    }
+    return real_path;
+}
+
+
 /**Main Function**/
  int main(int argc, char **argv) {
     //Deceleration of variables
@@ -115,6 +132,11 @@ void WritePathToFile(vector<pair<int, int> > locations, string path) {
     //Writes the locations into txt file
     WritePathToFile(path_cells, "navigation_plan.txt");
 
+    navigatorPath.path_coordinates = createPathCoordinates(path_cells, navigatorPath.size_map_units, navigatorPath.n_rows, navigatorPath.n_cols);
+
+    WritePathToFile(navigatorPath.path_coordinates, "map_path.txt");
     return 0;
 }
+
+
 
